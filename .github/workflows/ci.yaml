@@ -29,4 +29,4 @@ jobs:
 
     # TODO
     - name: Run tests
-      run: npm test
+      run: npm test -- --browsers ChromeHeadless # TODO: try with `--no-watch --no-progress`
