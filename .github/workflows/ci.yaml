@@ -1,3 +1,5 @@
+name: CI
+
 on:
   push:
     branches:
@@ -7,8 +9,7 @@ env:
   PROJECT: angular
 
 jobs:
-  # TODO: build, push
-  test:
+  image:
     runs-on: ubuntu-24.04
     defaults:
       run:
@@ -27,6 +28,8 @@ jobs:
     - name: Run clean install
       run: npm ci
 
-    # TODO
     - name: Run tests
       run: npm test -- --browsers ChromeHeadless --no-watch --no-progress
+
+    - name: Build the project
+      run: npm run build -- --configuration production
