@@ -56,7 +56,7 @@ jobs:
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        password: ${{ github.token }}
 
     - name: Extract metadata
       id: docker-meta
@@ -73,6 +73,14 @@ jobs:
         tags: ${{ steps.docker-meta.outputs.tags }}
         labels: ${{ steps.docker-meta.outputs.labels }}
 
+    - name: Retrieve the execution time
+      id: exec-time
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        echo "sec=$(gh api /repos/${{ github.repository }}/actions/runs/${{ github.run_id }} \
+          --jq '(.updated_at | fromdate) - (.created_at | fromdate)')" >> "$GITHUB_OUTPUT"
+
     - name: Send summary
       if: ${{ always() }}
       uses: dawidd6/action-send-mail@v3
@@ -81,11 +89,12 @@ jobs:
         server_port: ${{ secrets.MAIL_SERVER_PORT }}
         username: ${{ secrets.MAIL_USERNAME }}
         password: ${{ secrets.MAIL_PASSWORD }}
-        subject: GitHub Actions Job Summary for ${{ github.repository }}
+        subject: GitHub Actions Job Summary for ${{ github.repository }} (${{ job.status }})
         to: ${{ secrets.MAIL_TARGETS }}
         from: GitHub Actions on behalf of ${{ github.actor }}
         body: |
-          Status: ${{ job.status }}
+          Job status: ${{ job.status }}.
+          Workflow took approximately ${{ steps.exec-time.outputs.sec }} seconds to execute.
           Summary:
           - Check out the repository: ${{ steps.checkout.outcome }}
           - Set up Node.js: ${{ steps.setup-node.outcome }}
@@ -96,4 +105,5 @@ jobs:
           - Log into ${{ env.REGISTRY }} as ${{ github.actor }}: ${{ steps.docker-login.outcome }}
           - Extract metadata: ${{ steps.docker-meta.outcome }}
           - Build and push the image: ${{ steps.docker-build-push.outcome }}
+          - Retrieve the execution time: ${{ steps.exec-time.outcome }}
           - Send summary via email: one can only hope
