@@ -23,9 +23,11 @@ jobs:
 
     steps:
     - name: Check out the repository
+      id: checkout
       uses: actions/checkout@v4
 
     - name: Set up Node.js
+      id: setup-node
       uses: actions/setup-node@v4
       with:
         node-version: 20
@@ -33,18 +35,23 @@ jobs:
         cache-dependency-path: ${{ env.PROJECT }}/package-lock.json
 
     - name: Run clean install
+      id: npm-ci
       run: npm ci
 
     - name: Run tests
+      id: npm-test
       run: npm test -- --browsers ChromeHeadless --no-watch --no-progress
 
     - name: Build the project
+      id: npm-build
       run: npm run build -- --configuration production
 
     - name: Set up Docker Buildx
+      id: setup-buildx
       uses: docker/setup-buildx-action@v3
 
     - name: Log into registry ${{ env.REGISTRY }} as ${{ github.actor }}
+      id: docker-login
       uses: docker/login-action@v3
       with:
         registry: ${{ env.REGISTRY }}
@@ -52,15 +59,41 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Extract metadata
-      id: meta
+      id: docker-meta
       uses: docker/metadata-action@v5
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
     - name: Build and push the image
+      id: docker-build-push
       uses: docker/build-push-action@v6
       with:
         context: .
         push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+        tags: ${{ steps.docker-meta.outputs.tags }}
+        labels: ${{ steps.docker-meta.outputs.labels }}
+
+    - name: Send summary
+      if: ${{ always() }}
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: ${{ secrets.MAIL_SERVER }}
+        server_port: ${{ secrets.MAIL_SERVER_PORT }}
+        username: ${{ secrets.MAIL_USERNAME }}
+        password: ${{ secrets.MAIL_PASSWORD }}
+        subject: GitHub Actions Job Summary for ${{ github.repository }}
+        to: ${{ secrets.MAIL_TARGETS }}
+        from: GitHub Actions on behalf of ${{ github.actor }}
+        body: |
+          Status: ${{ job.status }}
+          Summary:
+          - Check out the repository: ${{ steps.checkout.outcome }}
+          - Set up Node.js: ${{ steps.setup-node.outcome }}
+          - Run clean install: ${{ steps.npm-ci.outcome }}
+          - Run tests: ${{ steps.npm-test.outcome }}
+          - Build the project: ${{ steps.npm-build.outcome }}
+          - Set up Docker Buildx: ${{ steps.setup-buildx.outcome }}
+          - Log into ${{ env.REGISTRY }} as ${{ github.actor }}: ${{ steps.docker-login.outcome }}
+          - Extract metadata: ${{ steps.docker-meta.outcome }}
+          - Build and push the image: ${{ steps.docker-build-push.outcome }}
+          - Send summary via email: one can only hope
