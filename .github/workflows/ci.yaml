@@ -59,6 +59,8 @@ jobs:
       uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # v5.5.1
       with:
         images: ${{ env.registry }}/${{ github.repository }}
+        tags: |
+          type=raw,value=latest
 
     - name: Build and push the image
       id: docker-build-push
