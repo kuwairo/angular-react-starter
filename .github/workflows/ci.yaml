@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-    - master
+    - use-github-actions
 
 env:
   registry: ghcr.io
