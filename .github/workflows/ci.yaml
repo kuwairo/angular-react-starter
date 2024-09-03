@@ -22,7 +22,7 @@ jobs:
       id: checkout
       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-    - name: Set up Node.js
+    - name: Set up node
       id: setup-node
       uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
       with:
@@ -42,7 +42,7 @@ jobs:
       id: npm-build
       run: npm run build -- --configuration production
 
-    - name: Set up Docker Buildx
+    - name: Set up buildx plugin
       id: setup-buildx
       uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
 
@@ -96,11 +96,11 @@ jobs:
           Workflow took approximately ${{ steps.exec-time.outputs.sec }} seconds to execute.
           Summary:
           - Check out the repository: ${{ steps.checkout.outcome }}
-          - Set up Node.js: ${{ steps.setup-node.outcome }}
+          - Set up node: ${{ steps.setup-node.outcome }}
           - Run clean install: ${{ steps.npm-ci.outcome }}
           - Run tests: ${{ steps.npm-test.outcome }}
           - Build the project: ${{ steps.npm-build.outcome }}
-          - Set up Docker Buildx: ${{ steps.setup-buildx.outcome }}
+          - Set up buildx plugin: ${{ steps.setup-buildx.outcome }}
           - Log into ${{ env.registry }} as ${{ github.actor }}: ${{ steps.docker-login.outcome }}
           - Extract metadata: ${{ steps.docker-meta.outcome }}
           - Build and push the image: ${{ steps.docker-build-push.outcome }}
