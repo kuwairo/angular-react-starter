@@ -36,7 +36,7 @@ jobs:
 
     - name: Run tests
       id: npm-test
-      run: npm test -- --browsers ChromeHeadless --no-watch --no-progress
+      run: npm run test -- --browsers ChromeHeadless --no-watch --no-progress
 
     - name: Build the project
       id: npm-build
