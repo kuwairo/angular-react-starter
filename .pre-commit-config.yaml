@@ -1,0 +1,30 @@
+---
+repos:
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+  - repo: https://github.com/lyz-code/yamlfix
+    rev: 1.16.1
+    hooks:
+      - id: yamlfix
+        args: [--config-file, .yamlfix.toml]
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+  - repo: https://github.com/petalmd/git-crypt-pre-commit
+    rev: v0.1
+    hooks:
+      - id: git-crypt
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: forbid-new-submodules
+      - id: no-commit-to-branch
+      - id: check-symlinks
+      - id: mixed-line-ending
+      - id: end-of-file-fixer
+      - id: trailing-whitespace

@@ -1,3 +1,4 @@
+---
 name: CI
 
 on:
@@ -24,91 +25,103 @@ jobs:
       contents: read
       packages: write
     steps:
-    - name: Check out the repository
-      id: checkout
-      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Check out the repository
+        id: checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332  # v4.1.7
 
-    - name: Set up node
-      id: setup-node
-      uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
-      with:
-        node-version: current
-        cache: npm
-        cache-dependency-path: angular/package-lock.json
+      - name: Set up node
+        id: setup-node
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b  # v4.0.3
+        with:
+          node-version: current
+          cache: npm
+          cache-dependency-path: angular/package-lock.json
 
-    - name: Run clean install
-      id: npm-ci
-      run: npm ci
+      - name: Run clean install
+        id: npm-ci
+        run: npm ci
 
-    - name: Run tests
-      id: npm-test
-      run: npm run test -- --browsers ChromeHeadless --no-watch --no-progress
+      - name: Run tests
+        id: npm-test
+        run: npm run test -- --browsers ChromeHeadless --no-watch --no-progress
 
-    - name: Build the project
-      id: npm-build
-      run: npm run build -- --configuration production
+      - name: Build the project
+        id: npm-build
+        run: npm run build -- --configuration production
 
-    - name: Set up buildx plugin
-      id: setup-buildx
-      uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
+      - name: Set up buildx plugin
+        id: setup-buildx
+        uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db  # v3.6.1
 
-    - name: Log into registry ${{ inputs.registry }} as ${{ github.actor }}
-      id: docker-login
-      uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
-      with:
-        registry: ${{ inputs.registry }}
-        username: ${{ github.actor }}
-        password: ${{ github.token }}
+      - name: Log into registry ${{ inputs.registry }} as ${{ github.actor }}
+        id: docker-login
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567  # v3.3.0
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
-    - name: Extract metadata
-      id: docker-meta
-      uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # v5.5.1
-      with:
-        images: ${{ inputs.registry }}/${{ github.repository }}
-        tags: |
-          type=raw,value=${{ inputs.tag }}
+      - name: Extract metadata
+        id: docker-meta
+        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81  # v5.5.1
+        with:
+          images: ${{ inputs.registry }}/${{ github.repository }}
+          tags: |
+            type=raw,value=${{ inputs.tag }}
 
-    - name: Build and push the image
-      id: docker-build-push
-      uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85 # v6.7.0
-      with:
-        context: .
-        push: true
-        tags: ${{ steps.docker-meta.outputs.tags }}
-        labels: ${{ steps.docker-meta.outputs.labels }}
+      - name: Build and push the image
+        id: docker-build-push
+        uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85  # v6.7.0
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.docker-meta.outputs.tags }}
+          labels: ${{ steps.docker-meta.outputs.labels }}
 
-    - name: Retrieve the execution time
-      id: exec-time
-      if: always()
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        echo "sec=$(gh api /repos/${{ github.repository }}/actions/runs/${{ github.run_id }} \
-          --jq '(.updated_at | fromdate) - (.created_at | fromdate)')" >> "$GITHUB_OUTPUT"
+      - name: Unlock secrets with git-crypt
+        if: always()
+        uses: sliteteam/github-action-git-crypt-unlock@f99c0c6b60bb7ec30dcec033a8f0a3b3d48f21e1  # v1.3.0
+        env:
+          GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}
 
-    - name: Send summary
-      if: always()
-      uses: dawidd6/action-send-mail@2cea9617b09d79a095af21254fbcb7ae95903dde # v3.12.0
-      with:
-        server_address: ${{ secrets.MAIL_SERVER }}
-        server_port: ${{ secrets.MAIL_SERVER_PORT }}
-        username: ${{ secrets.MAIL_USERNAME }}
-        password: ${{ secrets.MAIL_PASSWORD }}
-        subject: GitHub Actions Job Summary for ${{ github.repository }} (${{ job.status }})
-        to: ${{ secrets.MAIL_TARGETS }}
-        from: GitHub Actions (on behalf of ${{ github.actor }})
-        body: |
-          Job status: ${{ job.status }}.
-          Workflow took approximately ${{ steps.exec-time.outputs.sec }} seconds to execute.
-          Summary:
-          - Check out the repository: ${{ steps.checkout.outcome }}
-          - Set up node: ${{ steps.setup-node.outcome }}
-          - Run clean install: ${{ steps.npm-ci.outcome }}
-          - Run tests: ${{ steps.npm-test.outcome }}
-          - Build the project: ${{ steps.npm-build.outcome }}
-          - Set up buildx plugin: ${{ steps.setup-buildx.outcome }}
-          - Log into ${{ inputs.registry }} as ${{ github.actor }}: ${{ steps.docker-login.outcome }}
-          - Extract metadata: ${{ steps.docker-meta.outcome }}
-          - Build and push the image: ${{ steps.docker-build-push.outcome }}
-          - Retrieve the execution time: ${{ steps.exec-time.outcome }}
-          - Send summary via email: one can only hope
+      - name: Extract the unlocked secrets
+        if: always()
+        id: secrets
+        run: |
+          cat ${{ github.workspace }}/secrets >> "$GITHUB_OUTPUT"
+
+      - name: Retrieve the execution time
+        id: exec-time
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "sec=$(gh api /repos/${{ github.repository }}/actions/runs/${{ github.run_id }} \
+            --jq '(.updated_at | fromdate) - (.created_at | fromdate)')" >> "$GITHUB_OUTPUT"
+
+      - name: Send summary
+        if: always()
+        uses: dawidd6/action-send-mail@2cea9617b09d79a095af21254fbcb7ae95903dde  # v3.12.0
+        with:
+          server_address: ${{ steps.secrets.outputs.MAIL_SERVER }}
+          server_port: ${{ steps.secrets.outputs.MAIL_SERVER_PORT }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: GitHub Actions Job Summary for ${{ github.repository }} (${{ job.status }})
+          to: ${{ steps.secrets.outputs.MAIL_TARGETS }}
+          from: GitHub Actions (on behalf of ${{ github.actor }})
+          body: |-
+            Job status: ${{ job.status }}.
+            Workflow took approximately ${{ steps.exec-time.outputs.sec }} seconds to execute.
+            Summary:
+            - Check out the repository: ${{ steps.checkout.outcome }}
+            - Set up node: ${{ steps.setup-node.outcome }}
+            - Run clean install: ${{ steps.npm-ci.outcome }}
+            - Run tests: ${{ steps.npm-test.outcome }}
+            - Build the project: ${{ steps.npm-build.outcome }}
+            - Set up buildx plugin: ${{ steps.setup-buildx.outcome }}
+            - Log into ${{ inputs.registry }} as ${{ github.actor }}: ${{ steps.docker-login.outcome }}
+            - Extract metadata: ${{ steps.docker-meta.outcome }}
+            - Build and push the image: ${{ steps.docker-build-push.outcome }}
+            - Retrieve the execution time: ${{ steps.exec-time.outcome }}
+            - Send summary via email: one can only hope
