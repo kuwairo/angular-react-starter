@@ -1,0 +1,43 @@
+name: Run CI on push
+
+on:
+  push:
+    branches:
+      - master
+      - feature/*
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    outputs:
+      server: ${{ steps.secrets.outputs.MAIL_SERVER }}
+      port: ${{ steps.secrets.outputs.MAIL_SERVER_PORT }}
+      targets: ${{ steps.secrets.outputs.MAIL_TARGETS }}
+      username: ${{ steps.secrets.outputs.MAIL_USERNAME }}
+      password: ${{ steps.secrets.outputs.MAIL_PASSWORD }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332  # v4.1.7
+
+      - name: Unlock secrets with git-crypt
+        uses: sliteteam/github-action-git-crypt-unlock@f99c0c6b60bb7ec30dcec033a8f0a3b3d48f21e1  # v1.3.0
+        env:
+          GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}
+
+      - name: Extract the unlocked secrets
+        id: secrets
+        run: |
+          cat secrets >> "$GITHUB_OUTPUT"
+
+  ci:
+    uses: ./.github/workflows/ci.yaml
+    needs: secrets
+    with:
+      registry: ghcr.io
+      tag: latest
+    secrets:
+      mail_server: ${{ needs.secrets.outputs.server }}
+      mail_server_port: ${{ needs.secrets.outputs.port }}
+      mail_targets: ${{ needs.secrets.outputs.targets }}
+      mail_username: ${{ needs.secrets.outputs.username }}
+      mail_password: ${{ needs.secrets.outputs.password }}

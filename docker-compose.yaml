@@ -3,4 +3,4 @@ services:
     image: ghcr.io/kuwairo/angular-react-starter:latest
     restart: on-failure
     ports:
-    - 127.0.0.1:8087:8080
+      - 127.0.0.1:8087:8080
